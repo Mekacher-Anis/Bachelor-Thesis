@@ -31,8 +31,16 @@ Though the videos might not be well documented, information about their content 
 \end{itemize}
 
 In the context of scholarly videos, \gls{ocr} may be used to extract text from video frames; this text can then be merged into a single block that represents the contents of the video.
-This transcribed text can then be used in text-based information retrieval systems to further improve the accuracy of the search results.
+This transcribed text can then be used in text-based information retrieval systems to improve the accuracy of the search results further.
 
 \section{About this thesis}
 
-This thesis focuses on improving \gls{ocr} specifically for the use in scholarly videos.
+This thesis focuses on improving \gls{ocr} specifically for use in scholarly videos.
+
+Running \gls{ocr} on videos comes with certain challenges that define some of the goals I want to achieve in the thesis. Some of these problems are:
+\begin{itemize}
+    \item Videos are long and contain thousands of frames that need to be processed individually; for example, a one-hour thirty-minute video (the typical length of a lecture) recorded at 30 \gls{fps} contains $90 * 60 * 30 = 162000$ Frames that need to be processed. If processing one frame takes 100ms, this video will take four hours and thirty minutes which quickly becomes impractical when processing hundreds of lectures per day.
+    So efficiency and speed are some goals this thesis tries to achieve.
+    \item Falsely transcribed text (accuracy) or non-transcribed text (recall) can lead to erroneous results when used with information retrieval systems. So improving accuracy and recall is one of the goals we set to achieve.
+    \item Videos may be shaky, blurry, far away, or have bad lighting; all factors directly affect the accuracy and recall of the transcribed text. So making the system reliable and robust to variations further increases the practical use of \gls{ocr} for video transcription.
+\end{itemize}

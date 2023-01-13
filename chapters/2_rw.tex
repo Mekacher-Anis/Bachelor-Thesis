@@ -1,4 +1,43 @@
 \chapter{Related Work}
 \label{ch:rw}
 
+\section{Optical Character Recognition}
+\gls{ocr} is an umbrella term used for two main operations:
+\begin{enumerate}
+    \item Text Localization
+    \item Text Recognition
+\end{enumerate}
+And they're usually run in that specific order, with the output of the first step being passed as the input of the second step. In the following sections, the two operations are explained in more detail.
+\subsection{Text Localization}
+Text localization, also referred to as text detection, is the process of finding text in an image. The found text might have different fonts, colors, sizes, shapes, and partial occlusions. Text localization may also be considered a particular application of object detection methods.
+The input is a whole image in which we want to find texts.
 
+After the text has been located in the image, the output is a bounding box describing the location of the text. Bounding boxes consist of the center of the box and its corresponding width and height.
+
+This is a necessary step before running text recognition, as recognition methods usually work by transcribing a single word at a time and are typically more expensive to compute than text detection, as we will see later. 
+\subsection{Text Recognition}
+Text recognition is transcribing an image to machine-readable text such as ASCII.
+
+Usually, run on an image containing a single word, text recognition methods work by transcribing the word character by character, which is mainly a classification task.
+Classification methods try to find which set of categories -in this case, character class- a particular object or observation -in this case, an area of the image- belongs to.
+
+As a classification task, text recognition methods work only for a particular set of characters that may or may not be shared between multiple languages. For example, the Latin alphabet is used by different languages; hence a non-dictionary-based text recognition method trained to recognize the Latin alphabet might be able to transcribe all those languages.
+
+\section{Text Localization Methods}
+\subsection{Traditional Methods}
+Traditional object detection methods were region proposal-based methods; the name region proposal originates from how the algorithm works.
+Traditional region proposal methods consisted of five stages: a region proposal stage, a feature extraction stage, a judgment stage, an adjustment stage, and a suppression stage \cite{wang_object_2021}.
+
+The region proposal stage proposes multiple regions in the image with a good chance of having an object inside of them called \gls{roi}. One of the widely used frameworks is the Viola-Jones algorithm \cite{viola_rapid_2001}. It uses the sliding window principle with HAAR filters set to generate the proposal \gls{roi}s.
+
+In the feature extraction stage, a set of hand-crafted filters are used to extract useful features about the \gls{roi}; some known techniques for using choosing robust filters include scale-invariant feature-transform (SIFT) \cite{lowe_object_1999} and histogram of oriented gradients (HOG)\cite{dalal_histograms_2005}. The result is a vector that represents the value of each feature in the \gls{roi}.
+
+Now, this numerical representation can be used with classification methods like \gls{svm} to decide whether the given \gls{roi} contains some text. One such method that made use of \gls{svm} is Deformable Part Method 
+(DPM)\cite{felzenszwalb_object_nodate}.
+
+The adjustment stage was proposed by the authors of DPM and it improves the fit of the Bounding Box over the actual object inside the \gls{roi}.
+
+After the fourth step, there might be multiple overlapping bounding boxes; as we are usually interested in only one, we need to filter the rest out based on some criteria like Non-Max-Suppression; For regions with high overlap ratio which is calculated using \gls{iou} only those with the highest score from the \gls{svm} are left and the rest is removed (suppressed).
+
+\subsection{Machine Learning based methods}
+ 
