@@ -1,0 +1,38 @@
+
+\chapter{Introduction}
+\label{ch:intro}
+
+Videos of lectures are a great learning resource for students as they give them the freedom to go back to any point in the course and restudy the material to clarify some questions, study for an exam, or reinforce their knowledge.
+This reliance on lecture videos for learning has significantly increased in the last couple of years, especially after the COVID-19 pandemic hit and most students were forced to learn from home.
+Online learning platforms like Stud-IP and TIB AV-Portal provide easy access to thousands of hours of recorded lectures that students can quickly and easily accessible at any time.
+But the use cases for the recorded lectures are severely limited by the searchability of videos.
+
+\section{Problems}
+Most online learning platforms function more or less like a video database to which recordings of lectures get uploaded with minimal information about what the content is about and which topics are handled. The description of videos usually consists of a short title, which may be only the lecture number.
+
+This limited description of content poses a problem for information retrieval systems which are usually text-based. Searching for a term can be based only on the given title or short description of the video, which doesn't provide enough information about the content to allow the measurement of document (video) heuristics like \gls{tf–idf}, thus resulting in unreliable search results.
+
+One further problem of lecture videos is the inability to search for a term and jump to the specific location where it was mentioned, as is the case with PDF documents; for the student to find the point in time at which the term was written, they need to use the seek bar to slowly go through the video until they find the desired location.
+
+These problems strongly limit the use of recordings as reference material for exam revision.
+
+\section{Possible remediation of the problem}
+
+Though the videos might not be well documented, information about their content can still be extracted from the videos themselves. The goal, in this case, is to turn the videos into a searchable format like text; this might be done either based on the contained audio using methods like Speech-To-Text or based on their frames (images) using \gls{ocr}.
+
+\gls{ocr} is the process of transcribing still images to machine-readable text. It consists of two main tasks: text localization and text recognition, but it may include other image-processing tasks.
+
+
+\gls{ocr} has been used extensively in:
+\begin{itemize}
+    \item Document digitization: a scanned page of a document/book gets transcribed to its ASCII equivalent
+    \item Scene Text Recognition: extraction of text from scenes with complex backgrounds like in the case of autonomous vehicles.
+    \item Image text translation: Text is detected and translated in real-time like in the Google Translate App
+\end{itemize}
+
+In the context of scholarly videos, \gls{ocr} may be used to extract text from video frames; this text can then be merged into a single block that represents the contents of the video.
+This transcribed text can then be used in text-based information retrieval systems to further improve the accuracy of the search results.
+
+\section{About this thesis}
+
+This thesis focuses on improving \gls{ocr} specifically for the use in scholarly videos.

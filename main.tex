@@ -1,0 +1,203 @@
+\documentclass{ociamthesis}         % Load document base.
+
+\usepackage[utf8]{inputenc}         % Set .tex encoding (for pdfLaTeX).
+\usepackage[T1]{fontenc}            % Set document font.
+
+\usepackage[                        % Set default text spacing to 1.5
+    onehalfspacing,                 % and allows to switch to 1.0 later
+]{setspace}                         % on.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%% Recommended Imports %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{amssymb}                % Load American Mathematical Society
+\usepackage{amsthm}                 % packages to enhance equations.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\allowdisplaybreaks                 % Allow equations to break when to
+                                    % long.
+
+\usepackage{siunitx}                % Load SI unit support. Can be used
+\sisetup{                           % to alignment units in tables and
+  round-mode      = places,         % in general keep their format
+  round-precision = 2,              % consistent. Here it is setup to 
+}                                   % consistently round to two places.
+
+\usepackage[hyphens]{url}           % Set URLs to hyperlinks and allow
+                                    % to break them on hyphens (-).
+                                    
+\usepackage[                        % Make clickable hyperlink.
+    hyperindex = true,              % Set TOC to be clickable.
+    breaklinks = true,              % Allow links to break over lines.
+]{hyperref}
+
+\usepackage[all]{hypcap}            % Hyperlinks to captions link to the
+                                    % correct place within the document.
+
+
+\usepackage[english]{babel}         % Load language support. Use
+                                    % "english" for English and
+                                    % "ngerman" for German.
+
+\usepackage[
+    style        = numeric,
+    autocite     = plain,
+    sorting      = nyt,             % Sort by "name" "year "title"
+    maxcitenames = 2,               % Set max number of cited authors.
+    maxbibnames  = 10,              % Set max number of author names in
+                                    % bibliography.
+    backend      = biber,
+]{biblatex}
+
+\DefineBibliographyStrings{ngerman}{%          As babel switches 
+    andothers = {et\addabbrvspace al\adddot} % "et al." to "u. a." we 
+}                                   %          override this behavior
+                                    %          back to "et al."
+    
+
+\addbibresource{references.bib}     % Load your bib from a file       
+\addbibresource{zotero_references.bib}
+
+\usepackage{xcolor}                 % Allows coloring of elements and
+                                    % defining own colors.
+
+\usepackage{graphicx}
+\graphicspath{ {figures/} }         % Set the default path for graphics
+
+\usepackage{caption}                % Allows to customize captions
+                                    % further.
+
+\usepackage{subcaption}             % Allows to customize subcaptions.
+                                    % Relies on caption package.
+
+\usepackage[english]{cleveref}      % Improves references so you don't
+                                    % have to write "Chapter~\ref{}"
+                                    % Instead use \cref{} and \Cref{}.
+                                    % Use the same language option as
+                                    % babel.
+
+% \usepackage{nicefrac}             % Allows write fractions as ½
+
+\usepackage{longtable} 	            % Allows tables in a longtable
+                                    % environment to go over multiple
+                                    % pages.
+
+\usepackage{diagbox}                % Allows splitting a table cell
+                                    % diagonally.
+
+\usepackage{minted}                 % Load code highlighting package.
+\usemintedstyle{tango}              % Set highlight color style.
+\definecolor{background}{RGB}{      % Define code background color as
+    250,                            % light gray.
+    250,
+    250,
+}
+\setminted{                         % Setup global minted config.
+   linenos    = true,               % Use line numbers.
+   numbersep  = 8pt,                % Set number distance.
+   breaklines = true,               % Break long lines if possible.
+   frame      = lines,              % Add a top and bottom frame line.
+   bgcolor    = background,         % Set defined background color.
+}
+
+
+\usepackage{csquotes}               % Set quotes to be compatible with
+                                    % biblatex.
+
+\usepackage{datetime2}              % Package to handle timestamps.
+\DTMsetup{useregional}              % Checking babels language setup
+                                    % and format accordingly.
+
+
+\usepackage[                        % Use glossaries.
+    acronym,                        % Create special acronym glossary.
+    toc                             % Include glossaries in toc.
+]{glossaries}
+\makeglossaries
+\loadglsentries{                    % Load acronyms for acronym
+    glossaries/acronyms.tex         % glossary.
+}
+\loadglsentries{                    % Load symbols for main
+    glossaries/symbols.tex          % glossary.
+}
+
+
+\usepackage{lipsum}                 % Generates example text in
+                                    % abstract. You can remove this.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%% Cover Configuration %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Text localization and recognition for scholarly videos}
+\author{Anis Mekacher}
+\matriculationnumber{10027832}
+\department{Institut für Verteilte Systeme -- Fachgebiet Visual Analytics}
+\college{Leibniz Universität Hannover}
+\logo{\includegraphics[width=120mm]{figures/welfen}}
+\thesistype{Bachelorarbeit}
+\degree{Bachelor of Science (M. Sc.)}
+\degreedate{\DTMdate{1970-01-01}}
+\firstexaminer{Prof. Dr. Ralph Ewerth}
+\secondexaminer{Prof. Dr. Elias Examiner}
+\supervisor{M. Eng. Samuel Supervisor}
+\place{Hannover}
+% \germancover                      % Include this to set the cover
+                                    % to German instead of English.
+                                    % Remember to also switch babel
+                                    % and cleveref languages.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% end the preamble and start the document %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\pagenumbering{roman}               % Use roman page numbers.
+
+\setcounter{secnumdepth}{3}         % Set the number of sectioning
+\setcounter{tocdepth}{3}            % levels that get number and appear
+                                    % in the contents.
+
+\maketitle                          % Create a title page from the 
+                                    % preamble info.
+
+\input{chapters/0_abstract.tex}     % Include abstract befor toc.
+
+\tableofcontents                    % Print table of contents here.
+\phantomsection                     % Add anchor for hyperref.
+\addcontentsline{toc}{chapter}{     % Add list of tables as chapter to
+        \listtablename              % the table of contents.
+    }
+\listoftables                       % Print list of tables here.
+\phantomsection                     % Add anchor for hyperref.
+\addcontentsline{toc}{chapter}{     % Add list of figures as chapter to
+        \listfigurename             % the table of contents.
+    }
+\listoffigures                      % Print list of figures here.
+\printglossary[type=\acronymtype]   % Print list of acronyms.
+\printglossary                      % Print (default) list of symbols.
+\cleardoublepage                    % Make sure new content is on
+                                    % odd page
+\pagenumbering{arabic}              % Switch page numbers to arabic.
+\setcounter{page}{1}                % Reset page counter.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% % Include all your chapters
+\input{chapters/1_intro.tex}
+\input{chapters/2_rw.tex}
+\input{chapters/3_foundations.tex}
+\input{chapters/4_methology.tex}
+\input{chapters/5_experiments.tex}
+\input{chapters/6_conclusion.tex}
+
+
+\singlespacing                      % References should use single
+                                    % line spacing.
+% \nocite{*}                        % [Debug] Use this to include all
+                                    % references. 
+\printbibliography                  % Print all used references.
+
+\input{chapters/appendix.tex}       % Print your appendix.
+
+\end{document}
