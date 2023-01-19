@@ -1,1 +1,83 @@
 \chapter{Foundations}
+
+\section{Optical Character Recognition}
+\gls{ocr} is an umbrella term used for two main operations:
+\begin{enumerate}
+    \item Text Localization
+    \item Text Recognition
+\end{enumerate}
+And they're usually run in that specific order, with the output of the first step being passed as the input of the second step. In the following sections, the two operations are explained in more detail.
+\subsection{Text Localization}
+Text localization, also referred to as text detection, is the process of finding text in an image. The found text might have different fonts, colors, sizes, shapes, and partial occlusions. Text localization may also be considered a particular application of object detection methods.
+The input is a whole image in which we want to find texts.
+
+After the text has been located in the image, the output is a bounding box describing the location of the text. Bounding boxes consist of the center of the box and its corresponding width and height.
+
+If the goal is not only to place a bounding box around the object but also to delineate the exact contour of the object of a certain class, i.e. we want to define which pixels belong to a certain class of objects then the problem becomes a semantic segmentation problem. If the goal is taken a step further and we want to differentiate between the pixels of each instance of each class of objects, then the problem is considered an instance segmentation problem.
+
+This is a necessary step before running text recognition, as recognition methods usually work by transcribing a single word at a time and are typically more expensive to compute than text detection, as we will see later.
+\subsection{Text Recognition}
+Text recognition is transcribing an image to machine-readable text such as ASCII.
+
+Usually, run on an image containing a single word, text recognition methods work by transcribing the word character by character, which is mainly a classification task.
+Classification methods try to find which set of categories -in this case, character class- a particular object or observation -in this case, an area of the image- belongs to.
+
+As a classification task, text recognition methods work only for a particular set of characters that may or may not be shared between multiple languages. For example, the Latin alphabet is used by different languages; hence a non-dictionary-based text recognition method trained to recognize the Latin alphabet might be able to transcribe all those languages.
+
+\section{Text Localization Methods}
+\subsection{Traditional Methods}
+Traditional object detection methods were region proposal-based methods; the name region proposal originates from how the algorithm works.
+Traditional region proposal methods consisted of five stages: a region proposal stage, a feature extraction stage, a judgment stage, an adjustment stage, and a suppression stage \cite{wang_object_2021}.
+
+The region proposal stage proposes multiple regions in the image with a good chance of having an object inside of them called \gls{roi}. One of the widely used frameworks is the Viola-Jones algorithm \cite{viola_rapid_2001}. It uses the sliding window principle with HAAR filters set to generate the proposed \gls{roi}s.
+
+In the feature extraction stage, a set of handcrafted filters are used to extract useful features about the \gls{roi}; some known techniques for using choosing robust filters include scale-invariant feature-transform (SIFT) \cite{lowe_object_1999} and histogram of oriented gradients (HOG)\cite{dalal_histograms_2005}. The result is a vector representing each feature's value in the \gls{roi}.
+
+Now, this numerical representation can be used with classification methods like \gls{svm} to decide whether the given \gls{roi} contains some text. One such method that made use of \gls{svm} is Deformable Part Method 
+(DPM)\cite{felzenszwalb_object_nodate}.
+
+The authors of DPM proposed the adjustment stage, which improves the Bounding Box's fit over the actual object inside the \gls{roi}.
+
+After the fourth step, there might be multiple overlapping bounding boxes; as we are usually interested in only one, we need to filter the rest out based on some criteria like Non-Max-Suppression; For regions with a high overlap ratio which is calculated using \gls{iou} only those with the highest score from the \gls{svm} are left, and the rest is removed (suppressed).
+
+\subsection{Machine Learning based methods}
+Most modern computer vision machine-learning methods are based on \gls{cnn}.
+\gls{cnn}s are a mathematical model that tries to simulate how the human visual cortex works by processing only a limited visual field region at a time, a.k.a a receptive field.
+
+ Although the main idea behind deep \gls{cnn}s was first introduced by Yann Lecun in 1998 \cite{lecun_gradient-based_1998}, they only became mainstream after the now famous AlexNet model was published in 2012 \cite{krizhevsky_imagenet_2012} which won the ImageNet competition. The AlexNet model influenced many models after it, some that used GPUs to accelerate learning and others that experimented with the influence of depth and recurrence on the overall performance.
+
+The \gls{rcnn} model \cite{girshick_rich_2014} model was one of the models built on the advancements made by AlexNet to improve object detection accuracy and speed.
+
+It has similar stages to traditional models, with the first stage being region proposal, then feature extraction, followed by a judgment stage.
+
+For the region proposal stage, it uses the selective search algorithm \cite{uijlings_selective_2013} to cluster regions/pixels with similar color, texture, and size and fill into blobs which are also aggregated into bigger chunks. In contrast to traditional methods (e.g. sliding-window) that result on average in $\sim100000$, this algorithm results in around $\sim2000$ candidate regions \cite{wang_object_2021} drastically improving performance.
+
+In the feature extraction stage, instead of using handcrafted filters, it uses a pre-trained AlexNet model to turn the proposed regions into vectors of feature values. The feature vectors are then processed by parallel \gls{svm}s and filtered using Non-Max-Suppression to get the final bounding boxes.
+
+The different techniques used in the stages of \gls{rcnn} make it hard to train the whole model end-to-end. In addition, in the feature extraction stage, the \gls{cnn} has to run on every proposed region, even if it overlapped with another proposed region, which led to unnecessary repeated calculations.
+
+Fast R-CNN \cite{girshick_fast_2015} solved the redundant computations problems by running the original image through several convolutional and pooling layers once and then projecting any given \gls{roi} onto the feature map. The projected feature map is then passed through a single layer \gls{sppn} to get a fixed-size feature vector. This output vector is then fed to a \gls{fcn}, which replaces the multiple \gls{svm}s in the normal R-CNN, enabling end-to-end training of the model.
+
+Faster R-CNN \cite{ren_faster_2017} improved on Fast R-CNN by replacing the selective search algorithm with a \gls{rpn}; it runs on the feature map generated by the convolutional layers of R-CNN to propose \gls{roi}. This is implemented using an $n\times n$ and two $1\times 1$ convolutional layers. The center of the kernel in the $n \times n$ convolutional layer represents the center of multiple anchor boxes of different sizes and aspect ratios. The bounding boxes are then fed to the two $1\times 1$ layers, which give them a respective objectness score. This integration of the \gls{roi} proposal step allows it to be trained along with the rest of the network.
+
+Mask R-CNN \cite{he_mask_2017} extends Faster R-CNN with a \gls{fcn} with a deconvolution layer to generate instance segmentation masks. The new \gls{fcn} runs parallel to the fully connected layers and yields a mask that assigns a class to each pixel in the image.
+
+In Fast R-CNN, the \gls{rpn} runs only on the last feature map outputted by the backbone (e.g., AlexNet, ResNet, VGG-16...); the last feature map is a more semantically dense representation of the original image, but it has less of the details of the original. This lost information affects especially small objects in the picture; hence the object detection accuracy of fast R-CNN is usually worse for smaller objects. The \gls{fpn} method \cite{lin_feature_2017} remediates this problem by building a feature pyramid of the original image at different scales. This is done by combining feature maps from deeper layers in the backbone with the ones one level higher by upsampling them and then merging using some element-wise operation like addition; the resulting feature maps include both the semantic information from the deeper parts of the network and the details of the original, which improves the overall accuracy of the object detection and segmentation in the case of the Mask R-CNN.
+
+\gls{panet} \cite{liu_path_2018} took this idea of feature pyramids a step further and added a bottom-up path connected in the reverse direction to the feature maps generated by \gls{fpn}, creating an easier way for the details from the original image to flow to the deeper-level feature maps. A given region proposal is then sampled from the feature pyramid and merged into a single region proposal using an adaptive feature pooling method.
+
+Other segmentation-based text detection algorithms include the PSENet model \cite{wang_shape_2019}, which is based on the \gls{fpn} architecture and a post-processing algorithm called "scale expansion algorithm". The input image is first passed through the ResNet model, the output of which is then augmented using the \gls{fpn} method to generate a feature pyramid; multiple segmentation masks are then generated based on the feature maps by passing them through two convolutional layers and an up-sampling layer. The scale expansion algorithm then takes these segmentation masks and expands the text regions until they include all the pixels belonging to a particular line of text.
+
+\gls{dbnet} \cite{liao_real-time_2019} boosts a very similar structure to PSENet with a small change to how the binarization process works. In most segmentation-based object detection methods, the backbone and the neck of the network produce a probability map for the target class in the image, which is then binarized to produce the segmentation mask, which is later used to generate the object detection bounding boxes or polygons. This binarization process is quite often pretty simple and consists of comparing the probability of each pixel with a constant threshold set by the developer as a hyper-parameter; this can be expressed mathematically by
+\begin{equation}
+    B_{i,j} = 
+    \begin{cases}
+        1,& \text{if }_{i,j} P\geq threshold\\
+        0,              & \text{otherwise}
+    \end{cases}
+\end{equation}
+is not differentiable at the threshold value, and the derivative is $0$ otherwise, which means that it can't be optimized using back-propagation in \gls{sgd}. \gls{dbnet} proposed a "Differentiable Binarization" algorithm using a sigmoid function as an approximate step function which works well with back-propagation. By replacing the binarization function, the whole binarization process can now be trained along with the rest of the network to generate a dynamic threshold map that sets the threshold value per pixel instead of using a global constant, thus giving the network more flexibility to learn what should be considered as text and what not.
+
+\gls{dbnetpp} \cite{liao_real-time_2023} the sequel of \gls{dbnet} optimizes the process of merging the different feature maps produced by the \gls{fpn}. In PSENet and \gls{dbnet}, the merging of the feature maps is a simple concatenation process; \gls{dbnetpp} improves this process by introducing an "Adaptive Scale Fusion" Network that adds an attention mechanism to the whole process. Attention mechanisms in machine learning are techniques that guide the focus of the network to a specific part of the image/object that's being processed to improve the performance of the task, somewhat similar to how the human perceptive system works; when understanding a scene, humans usually focus on certain key areas which explain the context and the main objects. The adaptive scale fusion model does a similar job by directing the focus of the network to the different scale features produced by the \gls{fpn} hence improving the detection of varying size texts in the image.
+
+FourierNet a.k.a FCENet \cite{riaz_fouriernet_2021} also uses segmentation to detect the text regions based on a ResNet + \gls{fpn} backbone followed by one classification and one regression head. In contrast to other models, FourierNet chooses to represent the text regions as coefficients for a Fourier series (hence the name) instead of a mask or a polygon. These coefficients can then be turned into a Polygon using the inverse fast Fourier transform. The size of the output vector determines the range of frequencies for the IFFT and thus determines the level of detail in the generated contour. The proposed representation is more compact than a polygon or mask representation, so it requires less space.
