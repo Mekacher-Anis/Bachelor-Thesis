@@ -1,1 +1,130 @@
 \chapter{Methology}
+
+\section{Video processing pipeline}
+
+To get the text transcription from a lecture video, most of the previously-stated problems need to be addressed at some point, which naturally leads to a multi-step processing pipeline.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=140mm]{figures/ocr_pipeline}
+        \caption{Video processing pipeline}
+        \label{meth:ocr_pipeline}
+\end{figure}
+
+As shown in figure \ref{meth:ocr_pipeline}, the video processing pipeline contains seven steps that take an input video and output its transcription. First, the input video is subsampled to reduce the total number of frames that need to be processed; the selected frames are then fed to a distinct frame detection algorithm that finds the set of unique frames from the subsampled frames. After the distinct frame detection, all the images are processed separately and in parallel, so each frame first passes through a text detection model that puts bounding boxes around the text fields in the image; each bounding box is then cropped from the image and passed to a text recognition model that transcribes the text found in the image. The transcribed text is then passed to a context-free (dictionary-based) error correction algorithm to detect and fix some transcription errors. After error correction, we have a set of bounding boxes and their corresponding text per frame; on their own, they're independent words with no connection to one another and can serve as a video search index but to get a more comprehensive understanding of the text content, the words need to be turned back into complete sentences; that's why the next step is bounding box stitching (merging) which connects multiple bounding boxes into one to make up full sentences. The sentences can then be passed to a context-based error correction method to fix grammatical errors that could have been caused by incorrect transcription of some words.
+
+In the following sections, we'll go into more detail about each step.
+
+\section{Subsampling and distinct frame detection}
+
+In the first step, the video file is read, and then a list of all the frames' indexes is returned; it's important at this point to focus on the fact that not the frames themselves are read into memory but only their corresponding ids, this is done to reduce the memory load as most lecture videos are pretty long and depending on the file format may be quite large. Additionally, we might also want to process multiple videos in parallel on the same machine, and we would run out of memory pretty fast if they all needed to be loaded into memory. We then choose how many frames per second of video we want to process, and based on the video's \gls{fps}, we determine how many frames should be skipped. The formula for this is  $\text{skip\_frames} = \text{video\_fps} \ / \ \text{target\_fps}$; so for a $30$ FPS video and chosen target FPS of $1$, we'll only consider every $30$th frame starting from $0$. Depending on the selected target FPS, this significantly reduces the number of frames that need to be processed by the later stages of the pipeline and thus makes inference run faster. Videos with 30+ FPS have frames that are taken $1s / 30 = 0.033s  = 33.33ms$ apart; for a fast-moving target, a lot can change in 33ms, but for still videos of lectures most frames that are taken in a second are identical.
+
+In lecture videos, not a lot changes even when considering frames every second, and this is due to multiple reasons related to how lectures are usually constructed. In a typical lecture, the presenter either writes or displays a slide and then spends a considerable amount of time, ranging from seconds to minutes, explaining the material presented. Moreover, if the presenter is actively writing and not displaying already written materials, then a good portion of the time is spent writing the content on the board; from a text recognition pipeline's point of view, the frames that include the text being actively written are irrelevant, because the transcribed text from each frame would be a duplicate of the last one with none or some words added to it; that's why the only frame that matters is the final one with all the text written on it. That frame contains all the information about the previous ones that we actually care about; so we call it a distinct or unique frame and it's the one that gets processed by the rest of the pipeline.
+
+As explained in \ref{ch:foundations:ocr_challenges}, state-of-the-art methods for distinct frame detection rely on encoding the individual frames to feature vector representations and then comparing two vectors based on cosine similarity or square difference. The used models for encoding are mainly object detection or recognition methods, which are heavy-duty, computationally expensive, and take a long time to run. Considering that this step is a pre-step to the main text localization stage and is implemented to reduce the amount of computation needed for text detection, it has to be efficient and fast and doesn't have to be that accurate. Based on these criteria, a simple distinct frame algorithm described in \ref{ch:methodology:distinct_frame_det} has been implemented. Given a sequence of frames, the algorithm detects the unique frames by calculating the normalized pixel square difference between each image in the list and the last chosen frame; if the difference exceeds a given threshold, the frame is considered sufficiently different from the last. For initializing the algorithm, the first frame of the list is chosen as a distinct frame against which the second frame in the list is compared. Through testing, $\text{threshold} = 0.01$ has given good results regarding the number of chosen distinct frames.
+
+\begin{algorithm}
+\caption{Distinct frame detection algorithm}\label{ch:methodology:distinct_frame_det}
+\textbf{Input:} frames, threshold \\
+\textbf{Output:} distinct\_frames 
+\begin{algorithmic}
+\State $\text{last} \gets \text{frames[0]}$
+\State $\text{distinct\_frames} \gets \text{[frames[0]]}$
+\For{\text{frame} \textbf{in} \text{frames}}
+\State $\text{diff} \gets \nicefrac{\sum_{x,y} (\text{frame}(x,y)-\text{last}(x,y))^2}{\sqrt{\sum_{ x,y}\text{frame}(x,y)^2 \cdot \sum_{x,y} \text{last}(x,y)^2}}$
+\If{diff $\ge$ threshold}
+    \State last $\gets$ frame
+    \State dictinct\_frames\texttt{.append(}frame\texttt{)}
+\EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\section{Tested text localization methods}
+
+Each of the models explained in \ref{ch:foundations} have their strong suits and weaknesses; some are more capable of detecting typeset text than hand-written, some do better at detecting weirdly shaped text than others, and some put more emphasis on precision than speed. Knowing beforehand what method will be more suitable for detecting text in scholarly videos is hard because even though the problem at its core is still the same, localizing text in different environments has its quirks and application-specific problems. For example, text recognition for autonomous vehicles is more focused on running in real-time rather than accurately finding every single text instance in the scene. An objective and fair comparison of the different techniques has to be done to find the best text detection model for educational videos. To this end, we specify a common dataset for training, a common dataset for testing, and a common set of performance measurements.
+
+The framework of choice for running these tests is \gls{mmocr} \cite{mmocr_contributors_openmmlab_2020}, which implements a host of text detection and recognition models and offers a way to train, configure,  and finally deploy them for running on an inference server. It also supports distributed multi-GPU training and inference. Furthermore, most implemented models have pre-trained weights for fine-tuning or transfer learning saving us cost and time while testing different models.
+
+The text localization methods chosen for testing are \hyperref[dbnet]{DBNet}, \hyperref[dbnetpp]{DBNet++}, \hyperref[panet]{PANet}, \hyperref[psenet]{PSENet}, \hyperref[fcenet]{FCENet}, \hyperref[maskrcnn]{Mask R-CNN}, and \gls{yolov7}; all of which have been explained in detail in \hyperref[ch:foundations]{Foundations}. MMOCR includes an implementation for all of the chosen models except for \gls{yolov7} and provides pre-trained weights (training checkpoints) on the \gls{icdar} 2015 \cite{karatzas_icdar_2015} dataset.
+
+For the \gls{yolov7} model, the authors have open-sourced an implementation on Github\cite{wong_official_2023} along with pre-trained weights on the ImageNet dataset. The ImageNet dataset contains one-thousand classes of objects, none of which is text. Therefore, the pre-trained models' heads output a thousand class probabilities that are not directly used for text detection. So to make use of the pre-trained models, transfer learning has been applied to the given weights. Transfer Learning is a technique that takes a model trained on a specific domain and retrains it to be used on another domain; this process usually entails discarding the top layers (the head) of the neural network, which outputs the class probabilities and the bounding boxes and replacing it with a different head that outputs results useful to our use case. Because the main task is almost the same, which is a computer vision task consisting of extracting features from images and parsing them in a domain-specific way, the backbone of the model that does most of the feature extraction doesn't have to be retrained and can be opted-out of the gradient calculations for most of the retraining phase leading to faster and more efficient retraining. In this case, transfer learning can be used to retrain the pre-trained YOLOv7 model to detect text only instead of the thousand classes in ImageNet. This model was then trained on \gls{icdar} 2015 text detection dataset for multiple epochs and the best model was chosen for further testing.
+
+With the models chosen, a dataset for testing the different models needed to be selected. There are multiple available text detection datasets on the internet for different use cases, including but not limited to scene text detection, document text detection, curved text detection, named entity detection, and brand name detection. But the most suitable dataset for detecting text in scholarly videos was \gls{lvdb} \cite{dutta_localizing_2018}. For the LVDB dataset, the authors compiled still frames from multiple lecture video formats like a recorded live lecture with text written on a blackboard or whiteboard, handwritten text on paper, and typeset text in presentation slides as shown in Figure \ref{meth:lvdb_textdet_collage}. The dataset includes in total $5474$ frames with $1145$ presentation slides, $945$ whiteboard images, $1281$ handwritten text on paper images, and $2103$ text on blackboard frames. The frames have $137745$ words with a bounding box around them as the ground truth against which we can train and test new models. The authors split the words into training, validation, and test sets with $82263$, $15379$, and $40103$ words correspondingly, each containing text of different categories and written by different people. As is the case with all data collected for machine learning purposes, having more data and more variations in the data leads to a better model and better generalization performance when used on unseen data. LVDB is a good representative dataset of real-world lecture recordings that we might see in the wild.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=140mm]{figures/lvdb_textdet_collage.png}
+        \caption{LVDB Text Detection Samples}
+        \label{meth:lvdb_textdet_collage}
+\end{figure}
+
+As most of the aforementioned models have not been explicitly trained to detect text in lecture videos, or for that matter handwritten text, and to make sure that the comparison is as fair as possible, I chose to further train (fine-tune) all of the models on the LVDB test set chosen by the dataset authors. The model fine-tuning starts based on the weights trained on the ICDAR-2015 dataset and runs for at most twenty epochs or until the performance on the validation set plateaus. The Optimizer used for training is \gls{sgd} with a $\text{momentum} = 0.9$ and $\text{weight decay} = 0.0001$ and polynomial learning rate scheduler that decreases the learning rate polynomially starting from $0.007$.
+
+Performance metrics are the same performance metrics usually used for object detection, including precision and recall for a certain \gls{iou}, \gls{hmean}, and \gls{fps}. The \gls{iou}, also known in set theory as the Jaccard distance, is a ratio that measures how overlapping two objects or sets are. The IOU for two boxes A and B is defined as $\text{IOU} = \frac{\text{area of overlap between A and B}}{\text{area of union between A and B}}$. IOU ranges between $0$ and $1$ with a value of $1$, meaning that the two boxes overlay one another perfectly, and a value of $0$ means that the two boxes are distinct and don't overlap each other. While evaluating a model, a threshold value for the IOU can be set, so only predicted boxes that have an IOU with one of the grounded truth boxes higher than the threshold are considered. For a given IOU threshold the precision of the model's predictions can be measured, and it basically tells us how many boxes are correct out of all the predicted bounding boxes, and mathematically defined as $\text{Precision} = \nicefrac{\text{TP}}{\text{TP} + \text{FP}}$ with TP and FP being true positives and false positives correspondingly. Also, for a given IOU threshold, one can measure the Recall that indicates the percentage of the words in the picture that we found, so if there are four words in the image and we only found two, then we have a recall value of $0.5$ which is mathematically defined as $\text{Recall} = \nicefrac{\text{TP}}{\text{TP} + \text{FN}}$; with FN being the number of false negatives. If the chosen IOU threshold is $threshold$, then we denote the precision and recall measured at that threshold as Precision@$threshold$ and Recall@$threshold$; for example, for a threshold of $0.5$, we denote the measured precision and recall as Precision@.5 and Recall@.5 respectively. We also measure the precision and recall at different IOU thresholds, starting from $0.5$ and going up to $0.9$ using $0.1$ increments, and then calculate the \gls{hmean} to see how the model performs when the goal is accurate bounding boxes. Considering that these models have to be applied on hundreds of lecture video frames, they need to be as fast as possible, and a good measure of speed is the number of images processed per second denoted by \gls{fps}.
+
+\section{Tested text recognition methods}
+
+As is the case with text localization methods, different text recognition methods also focus on different aspects of the transcribed text. Text can vary greatly based on the used font, the person who's writing it, the language, etc thus some text recognition methods have been engineered to be better at recognizing some types of text than others. That is why we also need to do the same type of comparison of these different methods on scholarly videos. The same \gls{mmocr} framework has been selected to carry out the text recognition comparisons as it also offers implementations of multiple state-of-the-art methods.
+
+The tested text recognition methods are \hyperref[satrn]{SATRN}, ABINet, \hyperref[master]{MASTER}, \hyperref[nrtr]{NRTR}, and \hyperref[parseq]{PARSeq}.
+MMOCR had an implementation for almost all the models except for PARSeq, which I had to implement in MMOCR to measure the same performance metrics.
+For more comprehensive results, the tesseract OCR engine has also been tested; it's an OCR software that was developed by HP between 1984 and 2005 when it was open-sourced and has since then been maintained by Google. It supports three OCR inference modes, called "OCR Engine modes"; mode 0 is the legacy engine mode, mode 1 is the Neural nets (LSTM) engine, and mode 3 is a combination of both modes 0 and 1.
+
+For testing the different text recognition models a dataset and a standard set of performance metrics have been chosen. Luckily, the \gls{lvdb} dataset also contains a text recognition dataset. It has been generated by cropping out the words in the bounding boxes used for text localization and hand labeling them. The words extracted from the LVDB dataset possess the same variety as the video frames, i.e. they have different fonts, spacing, skew, weight, color, handwritten, typeset, and written by different people as shown in Figure \ref{meth:lvdb_textred_collage}.
+
+All the tested models have been pre-trained on the SynthText \cite{gupta_synthetic_2016} and/or MJSynth \cite{jaderberg_synthetic_2014} datasets which are both synthetic datasets. These datasets are generated programmatically by overlaying random words from a dictionary over background images. SynthText contains eight million words whereas MJSynth contains nine million words. All the models were trained further on the training set of the LVDB text recognition dataset.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=140mm]{figures/lvdb_textrec_collage.png}
+        \caption{LVDB Text Recognition Samples}
+        \label{meth:lvdb_textred_collage}
+\end{figure}
+
+Text recognition methods are mainly classification models, they need object classes to transcribe. In the case of text recognition the object classes are the characters in the alphabet, we want the models to be able to recognize them. The character set chosen defines the words and hence the languages that we will be able to transcribe after the model is trained. The pre-trained models have been trained on the English alphabet (ISO basic Latin alphabet) plus punctuation characters which is also the same alphabet used by the LVDB text recognition dataset.
+
+To determine the performance of the different models on the test set of the LVDB text recognition dataset, multiple word and character metrics have been measured. First, the word-level accuracy for all characters, without case, and without case or punctuation has been measured; it shows the percentage of the words that have been correctly transcribed while considering all the characters in the character set or only a subset of them. For example, when measuring the word accuracy without case or punctuation and our model transcribes the words "Hello!!" and "world" into "hello" and "word", then the model's accuracy is 0.5. While the word accuracy shows us the overall accuracy of the model, it fails to differentiate between a model that has extremely close results to the ground truth and a model which predicts most of the words completely wrong; consider the case in which two models A and B transcribe the word "polynomial" to "poiynomial" and "banana" respectively, they both have an accuracy of zero although model A has better/closer results to the ground truth. The \gls{1ned} metric \cite{yujian_normalized_2007} solves this problem by calculating one minus the Levenshtein edit distance between the prediction and the ground truth, so the closer the two words are the higher this metric is. For the previous example, the \gls{1ned} of "poiynomial" is $0.9$ and of "banana" is $0.19$. The model's overall \gls{1ned} is calculated for complete, uncased, and without punctuation character sets by averaging the individual word \gls{1ned}s. Added to that, the character level accuracy and recall have been measured by averaging all the characters from different words in the test set. A model might be accurate but too slow at transcribing text making its use impractical, so to make sure that the comparison is fair and to choose the best model the \gls{fps} which also represents the words per minute speed, has been taken into account.
+
+\section{Context-free error correction}
+
+First, to run error correction, the incorrectly transcribed (misspelled) words generated by the model have to be detected. This is usually done by verifying that the predicted word exists in a pre-defined dictionary, if it is not in the dictionary then it is considered misspelled and usually named an \gls{oov} word.
+For the detection of \gls{oov} words in scholarly videos, two dictionaries have been used one for English and another for german and they were both freely available on GitHub. The English dictionary contains $466550$ words and the german dictionary contains $100000$ words. The list of the words is stored in a set (hashtable) which offers a lookup time of $O(1)$, making the \gls{oov} words detection efficient and fast.
+
+After the misspelled words have been detected, they're passed to a context-free error correction algorithm to get suggestions for possible correction. Almost all of these methods are based on the edit distance between the predicted word and the words in the dictionary. How the distance is calculated determines the algorithm's speed and efficiency. The naive approach calculates the Levenshtein distance between the predicted word (the word to be corrected) and every word in the dictionary, sorts the words ascendingly based on the distance, and suggests the top $n$ words as corrections. This exhaustive search grows linearly with the size of the word and dictionary, and with a $400000+$ word dictionary, this quickly becomes impractical. An improvement to this method is early-stopping of the distance calculation if it exceeds a selected threshold; for a word in the dictionary, the entire distance is not calculated, only the distance up to a certain point. This method is known as "Peter Norvig"s error correction as it was proposed by him. This makes the correction faster but still too slow to be used in real-time; for example, for a word of length $n$, an alphabet size $a$ (English alphabet size), an edit distance $d$, there will be $n$ deletions, $n-1$ transpositions, $a * n$ alterations, and $a * (n+1)$ insertions, for a total of $2n+2an+a-1$ terms at search time. For $n=9$, $a=36$, $d=2$, and dictionary size of $400000+$ words this adds up to $114324 * 400000 = 45729600000$ possible terms for each \gls{oov} word, and that's only for one word but one frame of a lecture video may contain tens of words. Because of these speed limitations, the SymSpell algorithm \cite{wolf_1000x_2012} was chosen for the correction phase. In its essence, it's also somewhat similar to the naive and peter norvig's approach in that it calculates the distance between the predicted word and words in the dictionary, but completely different in the implementation. The Symspell algorithm only uses deletions to find possible corrections of the given word, and instead of calculating these deletions for every word in the dictionary during runtime, it pre-calculates and stores them in a hashmap; to find the possible corrections during runtime, it makes generates all the possible one character deletions of the word and makes a simple hashmap lookup which takes constant time. The suggestions are also based on the word frequency in the given language, which is included in the dictionary instead of the edit distance.
+
+To measure the effectiveness of this method, the overall word accuracy with and without error correction for multiple models has been measured.
+
+\section{Merging bonding boxes}
+
+For merging the text into lines and paragraphs the algorithm described in \ref{ch:methodology:bouding_box_merging} has been used. It takes the list of detected and transcribed bounding boxes and creates lines out of them by first sorting the boxes based on their X and Y coordinates; it then builds the lines by putting boxes that are close enough (have X distance less than a threshold) on the same line otherwise starting a new line. This process is then done for the created lines but based on their Y distance to merge them into paragraphs. For this stage, no metrics have been measured.
+
+\begin{algorithm}
+\caption{Bounding box merging algorithm}\label{ch:methodology:bouding_box_merging}
+\textbf{Input:} bboxes, max\_x\_dist, min\_x\_overlap, max\_y\_dist, min\_y\_overlap \\
+\textbf{Output:} paragraphs 
+\begin{algorithmic}
+\State sort\_boxes\_based\_on\_y(bboxes)\;
+\State stable\_sort\_boxes\_based\_on\_x(bboxes)\;
+\State $\text{lines} \gets \text{[]}$
+\State $\text{current\_line} \gets \text{[bboxes[0]]}$
+\For{\text{bbox} \textbf{in} \text{bboxes}}
+\State diff $\gets | \text{bbox.X1} - \text{current\_line.last.X2}|$
+\State overlap $\gets y\_overlap(\text{bbox} , \text{current\_line.last})$
+\If{diff $\ge$ max\_x\_dist \textbf{or} overlap $<$ min\_y\_overlap}
+    \State lines.append(line)
+    \State current\_line $\gets$ [bbox]
+\EndIf
+\EndFor
+\State $\text{paragraphs} \gets \text{[]}$
+\State $\text{current\_par} \gets \text{[lines[0]]}$
+\For{\text{line} \textbf{in} \text{lines}}
+\State diff $\gets | \text{line.Y1} - \text{current\_par.last.y2}|$
+\State overlap $\gets x\_overlap(\text{line} , \text{current\_par})$
+\If{diff $\ge$ max\_x\_dist \textbf{or} overlap $<$ min\_x\_overlap}
+    \State paragraphs.append(current\_par)
+    \State current\_par $\gets$ [line]
+\EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
