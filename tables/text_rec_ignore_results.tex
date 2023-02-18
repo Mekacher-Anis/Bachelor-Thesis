@@ -1,0 +1,20 @@
+\begin{table}[!ht]
+    \centering
+    \caption{Performance of text recognition methods when ignoring case and punctuation}
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+        Model name & 1-N.E.D & 1-N.E.D ignore case & 1-N.E.D ignore case and punctuation \\ \hline
+        tesseract oem 0 & 0.4139 & 0.5066 & 0.5235 \\ \hline
+        tesseract oem 2 & 0.5084 & 0.613 & 0.6264 \\ \hline
+        tesseract oem 1 & 0.5379 & 0.6428 & 0.6536 \\ \hline
+        SAR & 0.8319 & 0.8478 & 0.8521 \\ \hline
+        NRTR\_1/16-1/8 & 0.8765 & 0.9004 & 0.9058 \\ \hline
+        ABINet & 0.8774 & 0.8782 & 0.8813 \\ \hline
+        NRTR\_1/8-1/4 & 0.8791 & 0.9024 & 0.9082 \\ \hline
+        SATRN\_sm & 0.8807 & 0.8982 & 0.9033 \\ \hline
+        MASTER & 0.8811 & 0.8974 & 0.902 \\ \hline
+        SATRN & 0.8891 & 0.905 & 0.9097 \\ \hline
+        PARSeq & 0.8929 & 0.9123 & 0.9173 \\ \hline
+    \end{tabular}
+    \label{tab:text_rec_results_ignore}
+\end{table}

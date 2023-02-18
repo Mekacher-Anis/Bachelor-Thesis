@@ -1,0 +1,20 @@
+\begin{table}[!ht]
+    \centering
+    \caption{Performance of different text recognition methods tested on LVDB test set sorted based on 1-N.E.D then word accuracy then FPS}
+    \begin{tabular}{|l|l|l|l|l|l|}
+    \hline
+        Model name & 1-N.E.D & Word accuracy & Char recall & Char precision & FPS \\ \hline
+        tesseract oem 0 & 0.4139 & 0.2333 & 0.5561 & 0.7 & 25 \\ \hline
+        tesseract oem 2 & 0.5084 & 0.2747 & 0.6714 & 0.7814 & 26 \\ \hline
+        tesseract oem 1 & 0.5379 & 0.2942 & 0.7028 & 0.7899 & 35 \\ \hline
+        SAR & 0.8319 & 0.6896 & 0.8738 & 0.894 & 116 \\ \hline
+        NRTR\_1/16-1/8 & 0.8765 & 0.7764 & 0.9283 & 0.932 & 276 \\ \hline
+        ABINet & 0.8774 & 0.7574 & 0.9178 & 0.9033 & 310 \\ \hline
+        NRTR\_1/8-1/4 & 0.8791 & 0.7816 & 0.9303 & 0.9315 & 197 \\ \hline
+        SATRN (small) & 0.8807 & 0.7761 & 0.9261 & 0.9276 & 300 \\ \hline
+        MASTER & 0.8811 & 0.777 & 0.9237 & 0.9305 & 156 \\ \hline
+        SATRN & 0.8891 & 0.7914 & 0.9311 & 0.935 & 166 \\ \hline
+        PARSeq & \textbf{0.8929} & \textbf{0.7955} & \textbf{0.9364} & \textbf{0.9388} & \textbf{770} \\ \hline
+    \end{tabular}
+    \label{tab:text_rec_results}
+\end{table}

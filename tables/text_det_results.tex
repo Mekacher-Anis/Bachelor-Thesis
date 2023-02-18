@@ -1,0 +1,17 @@
+\begin{table}[!ht]
+    \centering
+    \caption{Performance of different text localization methods tested on LVDB test set. ResNet 18 and 50 means that the model's backbone is a ResNet 18 or 50 CNN. The rows are sorted based on the F1@.5 score.}
+    \begin{tabular}{|l|l|l|l|l|}
+    \hline
+        Model name & Precision@.5 & Recall@.5 & F1@.5 (H-mean) & FPS \\ \hline
+        PSENet & 0.8107 & 0.5637 & 0.665 & 3 \\ \hline
+        FCENet & 0.8115 & 0.7116 & 0.7583 & 1 \\ \hline
+        Mask R-CNN & 0.7902 & 0.7893 & 0.7898 & 5 \\ \hline
+        PANet & 0.869 & 0.7638 & 0.813 & 12 \\ \hline
+        DBNet (ResNet 18) & 0.8611 & 0.7957 & 0.8271 & 11 \\ \hline
+        DBNet (ResNet 50) & 0.8334 & 0.8225 & 0.8279 & 9 \\ \hline
+        DBNet++ (ResNet 50) & 0.887 & 0.8109 & 0.8473 & 9 \\ \hline
+        YOLOv7 & \textbf{0.887} & \textbf{0.841} & \textbf{0.864} & \textbf{277} \\ \hline
+    \end{tabular}
+    \label{tab:text_loc_results}
+\end{table}

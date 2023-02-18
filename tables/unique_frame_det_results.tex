@@ -1,0 +1,15 @@
+\begin{table}[!ht]
+    \centering
+    \caption{Results of running the distinct frame detection algorithm on six videos of different types, total frames is the number of frames in the video before subsampling, skip frames is the number of frames processed by the distinct frame detection algorithm, unique frames is the number of frames chosen by the algorithm}
+    \begin{tabular}{|c|c|c|c|c|}
+    \hline
+        \textbf{type} & \textbf{total frames} & \textbf{skip frames} & \textbf{unique frames} & \textbf{reduction} \\ \hline
+        writing on paper & 4604 & 192 & 10 & \textbf{0.95} \\ \hline
+        writing on paper & 11363 & 455 & 287 & 0.37 \\ \hline
+        writing on board board & 40859 & 1635 & 980 & 0.40 \\ \hline
+        writing on board & 26052 & 1043 & 1016 & \textbf{0.03} \\ \hline
+        presentation & 5807 & 233 & 11 & \textbf{0.95} \\ \hline
+        presentation & 19156 & 767 & 61 & 0.92 \\ \hline
+    \end{tabular}
+    \label{tab:uniqueframedetresults}
+\end{table}
